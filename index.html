@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 2026 Prediction Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --pink: #ff2d78; --pink2: #ff6eb4; --purple: #b84aff;
+    --bg: #0d0010; --card: rgba(255,255,255,0.04);
+    --border: rgba(255,45,120,0.2); --text: #f5eeff; --muted: rgba(255,255,255,0.35);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse at 10% 0%, rgba(184,74,255,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 10%, rgba(255,45,120,0.2) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 100%, rgba(255,110,180,0.1) 0%, transparent 50%);
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(255,45,120,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,45,120,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .wrap { position: relative; z-index: 1; }
+
+  .header {
+    padding: 24px 40px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); backdrop-filter: blur(20px);
+    background: rgba(13,0,16,0.6); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 42px; height: 42px; background: linear-gradient(135deg, var(--pink), var(--purple));
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; box-shadow: 0 0 20px rgba(255,45,120,0.4);
+  }
+  .logo-text {
+    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 22px;
+    background: linear-gradient(90deg, #fff 0%, var(--pink2) 60%, var(--purple) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 1px;
+  }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+  .season-pill {
+    background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff;
+    font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px;
+    padding: 8px 20px; border-radius: 100px; letter-spacing: 2px; box-shadow: 0 0 24px rgba(255,45,120,0.35);
+  }
+
+  .stats-bar {
+    padding: 20px 40px; display: flex; gap: 0; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.015); backdrop-filter: blur(10px); overflow-x: auto;
+  }
+  .stat { flex: 1; min-width: 120px; text-align: center; padding: 0 20px; border-right: 1px solid rgba(255,45,120,0.1); }
+  .stat:last-child { border-right: none; }
+  .stat-label { font-size: 9px; letter-spacing: 2.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 30px; background: linear-gradient(135deg, #fff, var(--pink2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-value.green { background: linear-gradient(135deg, #a8ffcb, #00e676); -webkit-background-clip: text; background-clip: text; }
+  .stat-value.pink { background: linear-gradient(135deg, var(--pink2), var(--purple)); -webkit-background-clip: text; background-clip: text; }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 40px 30px 60px; }
+  .section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+  .section-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; color: #fff; white-space: nowrap; }
+  .section-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+  .race-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .race-card {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px;
+    overflow: hidden; cursor: pointer; transition: all 0.25s ease; position: relative; backdrop-filter: blur(10px);
+  }
+  .race-card { transform-style: preserve-3d; will-change: transform; }
+  .race-card:hover { border-color: rgba(255,45,120,0.45); }
+
+  /* mouse-follow glow spot */
+  .card-glow {
+    position: absolute;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,45,120,0.25) 0%, transparent 70%);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s;
+    opacity: 0;
+    z-index: 3;
+  }
+  .race-card:hover .card-glow { opacity: 1; }
+  .race-card.completed { border-color: rgba(0,230,118,0.25); }
+  .race-card.partial   { border-color: rgba(255,214,66,0.25); }
+
+  /* ── CITY PATTERNS ── */
+  .card-banner { height: 90px; position: relative; overflow: hidden; display: flex; align-items: flex-end; padding: 10px 14px; }
+  .card-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 50%, rgba(255,255,255,0.04) 100%); pointer-events: none; }
+
+  .pattern-australia { background: radial-gradient(circle at 20% 80%, rgba(0,170,255,0.5) 0%, transparent 40%), radial-gradient(circle at 80% 20%, rgba(255,180,0,0.4) 0%, transparent 40%), linear-gradient(135deg, #0a1628 0%, #0d3b6e 50%, #1a6b3c 100%); }
+  .pattern-australia::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px); background-size: 18px 18px; }
+
+  .pattern-china { background: linear-gradient(135deg, #8b0000 0%, #cc0000 40%, #ff4444 70%, #ffcc00 100%); }
+  .pattern-china::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(45deg, rgba(255,200,0,0.12) 0px, rgba(255,200,0,0.12) 2px, transparent 2px, transparent 14px); }
+
+  .pattern-japan { background: linear-gradient(135deg, #ffe0f0 0%, #ffb3d1 30%, #ff6699 60%, #cc0033 100%); }
+  .pattern-japan::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 25% 55%, rgba(255,255,255,0.7) 9px, transparent 9px), radial-gradient(circle at 55% 30%, rgba(255,255,255,0.5) 6px, transparent 6px), radial-gradient(circle at 78% 65%, rgba(255,255,255,0.6) 7px, transparent 7px), radial-gradient(circle at 10% 80%, rgba(255,255,255,0.4) 5px, transparent 5px), radial-gradient(circle at 70% 15%, rgba(255,255,255,0.4) 4px, transparent 4px); }
+
+  .pattern-bahrain { background: linear-gradient(135deg, #c8a96e 0%, #e8c87a 30%, #d4941a 60%, #8b4513 100%); }
+  .pattern-bahrain::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.05) 9px), repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.05) 8px, rgba(255,255,255,0.05) 9px); }
+
+  .pattern-saudi { background: linear-gradient(135deg, #004d26 0%, #006633 40%, #009933 70%, #b3ffcc 100%); }
+  .pattern-saudi::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(60deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 22px); }
+
+  .pattern-miami { background: linear-gradient(135deg, #00c8ff 0%, #0066ff 30%, #ff00aa 65%, #ff6600 100%); }
+  .pattern-miami::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 20px), repeating-linear-gradient(0deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 20px); }
+
+  .pattern-imola { background: linear-gradient(135deg, #004d1a 0%, #009246 35%, #ffffff 55%, #ce2b37 100%); }
+  .pattern-imola::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.07) 2px, transparent 2px, transparent 16px); }
+
+  .pattern-monaco { background: linear-gradient(135deg, #06063a 0%, #1a1a7e 35%, #c8a000 65%, #ffd700 100%); }
+  .pattern-monaco::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(135deg, rgba(255,215,0,0.1) 0px, rgba(255,215,0,0.1) 2px, transparent 2px, transparent 18px); }
+
+  .pattern-spain { background: linear-gradient(135deg, #aa151b 0%, #c8342a 30%, #f1bf00 55%, #c8342a 80%, #aa151b 100%); }
+  .pattern-spain::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%); }
+
+  .pattern-canada { background: linear-gradient(135deg, #cc0000 0%, #ff3333 30%, #ffffff 50%, #ff3333 70%, #cc0000 100%); }
+  .pattern-canada::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 18px, transparent 18px), radial-gradient(circle at 80% 50%, rgba(255,255,255,0.3) 18px, transparent 18px); }
+
+  .pattern-austria { background: linear-gradient(135deg, #2d7a2d 0%, #4caf50 35%, #81c784 60%, #c8ffc8 100%); }
+  .pattern-austria::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 14px); }
+
+  .pattern-britain { background: linear-gradient(135deg, #012169 0%, #4466aa 30%, #C8102E 60%, #012169 100%); }
+  .pattern-britain::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 3px, transparent 3px, transparent 20px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 3px, transparent 3px, transparent 20px); }
+
+  .pattern-belgium { background: linear-gradient(90deg, #111 0%, #333 30%, #FAE042 55%, #EF3340 100%); }
+  .pattern-belgium::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 12px); }
+
+  .pattern-hungary { background: linear-gradient(135deg, #3a6e42 0%, #ffffff 50%, #ce2939 100%); }
+  .pattern-hungary::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12) 0%, transparent 65%); }
+
+  .pattern-netherlands { background: linear-gradient(135deg, #AE1C28 0%, #ffffff 45%, #21468B 100%); }
+  .pattern-netherlands::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px); }
+
+  .pattern-italy { background: linear-gradient(135deg, #009246 0%, #ffffff 50%, #CE2B37 100%); }
+  .pattern-italy::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(60deg, rgba(255,0,0,0.08) 0px, rgba(255,0,0,0.08) 2px, transparent 2px, transparent 18px); }
+
+  .pattern-azerbaijan { background: linear-gradient(135deg, #0092BC 0%, #00AACC 30%, #FF0000 55%, #00AF66 80%, #FFD700 100%); }
+  .pattern-azerbaijan::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px); background-size: 22px 22px; }
+
+  .pattern-singapore { background: linear-gradient(135deg, #080820 0%, #1a1a50 30%, #ff6600 65%, #ffaa00 100%); }
+  .pattern-singapore::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,180,0,0.18) 1px, transparent 1px); background-size: 12px 12px; }
+
+  .pattern-usa { background: linear-gradient(135deg, #B22234 0%, #ffffff 45%, #3C3B6E 100%); }
+  .pattern-usa::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px); }
+
+  .pattern-mexico { background: linear-gradient(135deg, #006847 0%, #44aa77 30%, #ffffff 50%, #dd3333 70%, #CE1126 100%); }
+  .pattern-mexico::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 55%); }
+
+  .pattern-brazil { background: linear-gradient(135deg, #009C3B 0%, #55cc66 30%, #FFDF00 55%, #002776 80%, #0033aa 100%); }
+  .pattern-brazil::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 40%); }
+
+  .pattern-lasvegas { background: linear-gradient(135deg, #080015 0%, #5500aa 25%, #cc00ff 50%, #ff00cc 70%, #ffcc00 100%); }
+  .pattern-lasvegas::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.28) 1px, transparent 1px), radial-gradient(circle, rgba(255,200,0,0.18) 1px, transparent 1px); background-size: 11px 11px, 19px 19px; background-position: 0 0, 6px 6px; }
+
+  .pattern-qatar { background: linear-gradient(135deg, #6d0f2e 0%, #8D1B3D 40%, #aa3355 70%, #ffffff 100%); }
+  .pattern-qatar::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 4px, transparent 4px, transparent 16px); }
+
+  .pattern-abudhabi { background: linear-gradient(135deg, #071428 0%, #1a3a5c 30%, #c8a96e 65%, #ffd700 100%); }
+  .pattern-abudhabi::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,215,0,0.14) 1px, transparent 1px); background-size: 16px 16px; }
+
+  .banner-label { position: relative; z-index: 2; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 4px; }
+
+  .card-body { padding: 16px 18px 18px; }
+  .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .card-round { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--pink2); letter-spacing: 2px; text-transform: uppercase; }
+  .card-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; margin-bottom: 3px; color: #fff; }
+  .card-circuit { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .card-date { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.2); margin-bottom: 12px; letter-spacing: 1px; }
+  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { padding: 3px 10px; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 100px; border: 1px solid rgba(255,255,255,0.1); color: var(--muted); font-family: 'Space Mono', monospace; }
+  .tag.sprint { border-color: rgba(0,212,255,0.35); color: #00d4ff; }
+  .tag.has-pred { border-color: rgba(255,214,66,0.4); color: #ffd642; }
+  .tag.has-result { border-color: rgba(0,230,118,0.4); color: #00e676; }
+  .card-score { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+  .score-label { font-size: 10px; color: var(--muted); }
+  .score-val { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(8,0,12,0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    border-radius: 28px; position: relative;
+    background: linear-gradient(160deg, rgba(30,0,45,0.95) 0%, rgba(15,0,25,0.98) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 0 1px rgba(255,45,120,0.15), 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* animated gradient border on modal */
+  .modal::before {
+    content: '';
+    position: absolute; inset: -1px;
+    border-radius: 29px;
+    background: linear-gradient(135deg, rgba(255,45,120,0.4), rgba(184,74,255,0.2), rgba(255,45,120,0.1), rgba(184,74,255,0.4));
+    background-size: 300% 300%;
+    animation: borderShift 4s ease infinite;
+    z-index: -1;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    padding: 1px;
+  }
+
+  @keyframes borderShift {
+    0%,100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  .modal-banner { height: 100px; border-radius: 28px 28px 0 0; position: relative; overflow: hidden; }
+  .modal-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 30%, rgba(15,0,25,0.95) 100%); }
+
+  .modal-content { padding: 20px 26px 28px; }
+
+  .modal-close {
+    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px); border-radius: 50%; color: rgba(255,255,255,0.7);
+    font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 10; transition: all 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,45,120,0.25); border-color: rgba(255,45,120,0.4); color: #fff; transform: rotate(90deg); }
+
+  .modal-title { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 24px; margin-bottom: 4px; letter-spacing: 0.5px; }
+  .modal-sub { font-size: 10px; color: var(--muted); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 22px; }
+
+  /* BENTO FORM SECTIONS */
+  .form-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .form-section:hover { border-color: rgba(255,255,255,0.1); }
+
+  /* subtle inner glow on sections */
+  .form-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  }
+
+  .form-section-title {
+    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .form-section-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+  .form-section-title.pred { color: #ffd642; }
+  .form-section-title.result { color: #00e676; }
+
+  /* FLOATING LABEL INPUT WRAPPER */
+  .input-wrap {
+    position: relative;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .form-pos {
+    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 20px;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-align: center; line-height: 1;
+  }
+
+  .input-field {
+    position: relative;
+  }
+
+  .form-input {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    outline: none; transition: all 0.25s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .form-input::placeholder { color: rgba(255,255,255,0.18); font-size: 12px; }
+
+  .form-input:focus {
+    border-color: rgba(255,45,120,0.5);
+    background: rgba(255,45,120,0.05);
+    box-shadow: 0 0 0 3px rgba(255,45,120,0.1), inset 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .form-input:not(:placeholder-shown) {
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* input underline sweep on focus */
+  .input-field::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%; width: 0; height: 2px;
+    background: linear-gradient(90deg, var(--pink), var(--purple));
+    border-radius: 0 0 12px 12px;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+  }
+  .input-field:focus-within::after { width: calc(100% - 8px); }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 14px 0; color: rgba(255,255,255,0.15); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase; font-family: 'Space Mono', monospace;
+  }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+
+  /* SAVE BUTTON */
+  .btn-save {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+    border: none; border-radius: 14px; color: #fff;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 1px;
+    cursor: pointer; margin-top: 10px; position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(255,45,120,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .btn-save::before {
+    content: '';
+    position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn-save:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,45,120,0.45), inset 0 1px 0 rgba(255,255,255,0.2); }
+  .btn-save:hover::before { left: 100%; }
+  .btn-save:active { transform: scale(0.98); }
+
+  /* SCORE BOX */
+  .modal-score {
+    margin-top: 14px; border-radius: 18px; padding: 20px; text-align: center;
+    background: linear-gradient(135deg, rgba(255,45,120,0.08), rgba(184,74,255,0.08));
+    border: 1px solid rgba(255,45,120,0.15);
+    position: relative; overflow: hidden;
+  }
+  .modal-score::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(255,45,120,0.1) 0%, transparent 60%);
+  }
+  .modal-score-label { font-size: 9px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .modal-score-val {
+    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 40px;
+    background: linear-gradient(135deg, #fff 0%, var(--pink2) 50%, var(--purple) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; margin-bottom: 6px;
+  }
+  .modal-score-breakdown { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+
+  /* ── FETCH BUTTON ── */
+  .fetch-wrap {
+    margin-top: 12px; margin-bottom: 10px;
+    position: relative;
+  }
+
+  .btn-fetch {
+    width: 100%; padding: 13px 20px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    color: rgba(255,255,255,0.55);
+    font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+    letter-spacing: 0.5px; cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    position: relative; overflow: hidden;
+  }
+
+  .btn-fetch::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,45,120,0.06), rgba(184,74,255,0.06));
+    opacity: 0; transition: opacity 0.3s;
+  }
+
+  .btn-fetch:hover {
+    border-color: rgba(255,45,120,0.3);
+    color: rgba(255,255,255,0.9);
+    box-shadow: 0 0 20px rgba(255,45,120,0.08);
+  }
+  .btn-fetch:hover::before { opacity: 1; }
+  .btn-fetch:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  .fetch-icon {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(255,45,120,0.3);
+  }
+
+  .fetch-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,45,120,0.2);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* result pill that appears inside inputs after fill */
+  .input-filled { border-color: rgba(0,230,118,0.35) !important; background: rgba(0,230,118,0.04) !important; }
+
+  /* fetch status bar */
+  .fetch-status {
+    margin-top: 8px;
+    height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.05);
+    overflow: hidden;
+    display: none;
+  }
+
+  .fetch-status-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pink), var(--purple));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+    animation: fetchProgress 2s ease forwards;
+  }
+
+  @keyframes fetchProgress {
+    0%   { width: 0%; }
+    40%  { width: 55%; }
+    70%  { width: 75%; }
+    90%  { width: 88%; }
+    100% { width: 95%; }
+  }
+
+  .fetch-label {
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    text-align: center; margin-top: 6px;
+    display: none; font-family: 'Space Mono', monospace;
+  }
+
+  ::-webkit-scrollbar-thumb { background: rgba(255,45,120,0.3); border-radius: 3px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🏎️</div>
+      <div>
+        <div class="logo-text">Pit Lane Predictions</div>
+        <div class="logo-sub">2026 Formula One Season</div>
+      </div>
+    </div>
+    <div class="season-pill">2026 ✦</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Races Done</div><div class="stat-value" id="stat-races">0</div></div>
+    <div class="stat"><div class="stat-label">Predictions Made</div><div class="stat-value pink" id="stat-predicted">0</div></div>
+    <div class="stat"><div class="stat-label">Exact Hits ✦</div><div class="stat-value green" id="stat-hits">0</div></div>
+    <div class="stat"><div class="stat-label">Total Points</div><div class="stat-value pink" id="stat-points">0</div></div>
+    <div class="stat"><div class="stat-label">Accuracy</div><div class="stat-value" id="stat-accuracy">—</div></div>
+  </div>
+  <div class="main">
+    <div class="section-header">
+      <div class="section-title">2026 Race Calendar ✦</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="race-grid" id="race-grid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-banner" id="modal-banner"></div>
+    <div class="modal-content">
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-sub" id="modal-sub"></div>
+      <div class="form-section">
+        <div class="form-section-title pred">🏁 Race Prediction</div>
+        <div class="input-wrap"><div class="form-pos">P1</div><div class="input-field"><input class="form-input" id="race-pred-1" placeholder="Who takes P1?"></div></div>
+        <div class="input-wrap"><div class="form-pos">P2</div><div class="input-field"><input class="form-input" id="race-pred-2" placeholder="Who takes P2?"></div></div>
+        <div class="input-wrap"><div class="form-pos">P3</div><div class="input-field"><input class="form-input" id="race-pred-3" placeholder="Who takes P3?"></div></div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title result">✅ Race Actual Result</div>
+        <div class="input-wrap"><div class="form-pos">P1</div><div class="input-field"><input class="form-input" id="race-res-1" placeholder="Actual P1..."></div></div>
+        <div class="input-wrap"><div class="form-pos">P2</div><div class="input-field"><input class="form-input" id="race-res-2" placeholder="Actual P2..."></div></div>
+        <div class="input-wrap"><div class="form-pos">P3</div><div class="input-field"><input class="form-input" id="race-res-3" placeholder="Actual P3..."></div></div>
+      </div>
+      <div id="sprint-section" style="display:none">
+        <div class="divider">⚡ Sprint Weekend</div>
+        <div class="form-section">
+          <div class="form-section-title pred">⚡ Sprint Prediction</div>
+          <div class="input-wrap"><div class="form-pos">P1</div><div class="input-field"><input class="form-input" id="sprint-pred-1" placeholder="Who takes P1?"></div></div>
+          <div class="input-wrap"><div class="form-pos">P2</div><div class="input-field"><input class="form-input" id="sprint-pred-2" placeholder="Who takes P2?"></div></div>
+          <div class="input-wrap"><div class="form-pos">P3</div><div class="input-field"><input class="form-input" id="sprint-pred-3" placeholder="Who takes P3?"></div></div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title result">✅ Sprint Actual Result</div>
+          <div class="input-wrap"><div class="form-pos">P1</div><div class="input-field"><input class="form-input" id="sprint-res-1" placeholder="Actual P1..."></div></div>
+          <div class="input-wrap"><div class="form-pos">P2</div><div class="input-field"><input class="form-input" id="sprint-res-2" placeholder="Actual P2..."></div></div>
+          <div class="input-wrap"><div class="form-pos">P3</div><div class="input-field"><input class="form-input" id="sprint-res-3" placeholder="Actual P3..."></div></div>
+        </div>
+      </div>
+      <div class="fetch-wrap">
+        <button class="btn-fetch" id="fetch-btn" onclick="fetchResults()">
+          <div class="fetch-icon" id="fetch-icon">✦</div>
+          <div class="fetch-spinner" id="fetch-spinner"></div>
+          <span id="fetch-text">Auto-fill actual results</span>
+        </button>
+        <div class="fetch-status" id="fetch-status">
+          <div class="fetch-status-bar" id="fetch-bar"></div>
+        </div>
+        <div class="fetch-label" id="fetch-label">Searching live race data...</div>
+      </div>
+      <button class="btn-save" onclick="saveRace()">Save Predictions ✦</button>
+      <div class="modal-score" id="modal-score" style="display:none">
+        <div class="modal-score-label">Your Score This Race</div>
+        <div class="modal-score-val" id="modal-score-val">0</div>
+        <div class="modal-score-breakdown" id="modal-score-breakdown"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const calendar = [
+    { round:1,  name:"Australian GP",      circuit:"Albert Park, Melbourne",         date:"Mar 14-16",    sprint:false, pattern:"australia",  label:"Melbourne, AUS" },
+    { round:2,  name:"Chinese GP",         circuit:"Shanghai International Circuit", date:"Mar 21-23",    sprint:true,  pattern:"china",      label:"Shanghai, CHN" },
+    { round:3,  name:"Japanese GP",        circuit:"Suzuka Circuit",                 date:"Apr 4-6",      sprint:false, pattern:"japan",      label:"Suzuka, JPN" },
+    { round:4,  name:"Bahrain GP",         circuit:"Bahrain International Circuit",  date:"Apr 11-13",    sprint:false, pattern:"bahrain",    label:"Sakhir, BHR" },
+    { round:5,  name:"Saudi Arabian GP",   circuit:"Jeddah Corniche Circuit",        date:"Apr 18-20",    sprint:false, pattern:"saudi",      label:"Jeddah, KSA" },
+    { round:6,  name:"Miami GP",           circuit:"Miami International Autodrome",  date:"May 2-4",      sprint:true,  pattern:"miami",      label:"Miami, USA" },
+    { round:7,  name:"Emilia Romagna GP",  circuit:"Autodromo Enzo e Dino Ferrari",  date:"May 16-18",    sprint:false, pattern:"imola",      label:"Imola, ITA" },
+    { round:8,  name:"Monaco GP",          circuit:"Circuit de Monaco",              date:"May 23-25",    sprint:false, pattern:"monaco",     label:"Monte Carlo, MON" },
+    { round:9,  name:"Spanish GP",         circuit:"Circuit de Barcelona-Catalunya", date:"May 30-Jun 1", sprint:false, pattern:"spain",      label:"Barcelona, ESP" },
+    { round:10, name:"Canadian GP",        circuit:"Circuit Gilles Villeneuve",      date:"Jun 13-15",    sprint:false, pattern:"canada",     label:"Montreal, CAN" },
+    { round:11, name:"Austrian GP",        circuit:"Red Bull Ring",                  date:"Jun 27-29",    sprint:true,  pattern:"austria",    label:"Spielberg, AUT" },
+    { round:12, name:"British GP",         circuit:"Silverstone Circuit",            date:"Jul 4-6",      sprint:false, pattern:"britain",    label:"Silverstone, GBR" },
+    { round:13, name:"Belgian GP",         circuit:"Circuit de Spa-Francorchamps",   date:"Jul 25-27",    sprint:false, pattern:"belgium",    label:"Spa, BEL" },
+    { round:14, name:"Hungarian GP",       circuit:"Hungaroring",                    date:"Aug 1-3",      sprint:false, pattern:"hungary",    label:"Budapest, HUN" },
+    { round:15, name:"Dutch GP",           circuit:"Circuit Zandvoort",              date:"Aug 29-31",    sprint:false, pattern:"netherlands",label:"Zandvoort, NED" },
+    { round:16, name:"Italian GP",         circuit:"Autodromo Nazionale Monza",      date:"Sep 5-7",      sprint:false, pattern:"italy",      label:"Monza, ITA" },
+    { round:17, name:"Azerbaijan GP",      circuit:"Baku City Circuit",              date:"Sep 19-21",    sprint:false, pattern:"azerbaijan", label:"Baku, AZE" },
+    { round:18, name:"Singapore GP",       circuit:"Marina Bay Street Circuit",      date:"Oct 3-5",      sprint:false, pattern:"singapore",  label:"Singapore, SGP" },
+    { round:19, name:"United States GP",   circuit:"Circuit of the Americas",        date:"Oct 17-19",    sprint:true,  pattern:"usa",        label:"Austin, USA" },
+    { round:20, name:"Mexico City GP",     circuit:"Autodromo Hermanos Rodriguez",   date:"Oct 24-26",    sprint:false, pattern:"mexico",     label:"Mexico City, MEX" },
+    { round:21, name:"São Paulo GP",       circuit:"Autodromo Jose Carlos Pace",     date:"Nov 7-9",      sprint:true,  pattern:"brazil",     label:"São Paulo, BRA" },
+    { round:22, name:"Las Vegas GP",       circuit:"Las Vegas Strip Circuit",        date:"Nov 20-22",    sprint:false, pattern:"lasvegas",   label:"Las Vegas, USA" },
+    { round:23, name:"Qatar GP",           circuit:"Lusail International Circuit",   date:"Nov 28-30",    sprint:true,  pattern:"qatar",      label:"Lusail, QAT" },
+    { round:24, name:"Abu Dhabi GP",       circuit:"Yas Marina Circuit",             date:"Dec 5-7",      sprint:false, pattern:"abudhabi",   label:"Abu Dhabi, UAE" },
+  ];
+
+  let currentRound = null;
+  function loadData() { return JSON.parse(localStorage.getItem('f1_2026_predictions') || '{}'); }
+  function saveData(data) { localStorage.setItem('f1_2026_predictions', JSON.stringify(data)); }
+
+  function calcScore(pred, result) {
+    if (!pred || !result) return { pts: 0, exact: 0 };
+    let pts = 0, exact = 0;
+    ['p1','p2','p3'].forEach(pos => {
+      const p = (pred[pos]||'').trim().toLowerCase();
+      const r = (result[pos]||'').trim().toLowerCase();
+      if (!p || !r) return;
+      if (p === r) { pts += 3; exact++; }
+      else if (['p1','p2','p3'].map(x => (result[x]||'').trim().toLowerCase()).includes(p)) pts += 1;
+    });
+    return { pts, exact };
+  }
+
+  function renderCards() {
+    const data = loadData();
+    const grid = document.getElementById('race-grid');
+    grid.innerHTML = '';
+    let totalPts = 0, totalExact = 0, totalPredicted = 0, totalRacesDone = 0;
+
+    calendar.forEach(race => {
+      const key = `round_${race.round}`;
+      const saved = data[key] || {};
+      const hasPred = saved.race_pred?.p1;
+      const hasResult = saved.race_res?.p1;
+
+      const hasSprintPred   = race.sprint && !!saved.sprint_pred?.p1;
+      const hasSprintResult = race.sprint && !!saved.sprint_res?.p1;
+      const hasAnyResult    = !!hasResult || hasSprintResult;
+      const hasAnyPred      = !!hasPred   || hasSprintPred;
+
+      let cardClass = 'upcoming';
+      if (hasAnyResult) { cardClass = 'completed'; totalRacesDone++; }
+      else if (hasAnyPred) cardClass = 'partial';
+
+      let racePts = 0, raceExact = 0;
+      if (hasPred && hasResult) {
+        const s = calcScore(saved.race_pred, saved.race_res);
+        racePts += s.pts; raceExact += s.exact; totalPredicted += 3;
+      }
+      if (hasSprintPred && hasSprintResult) {
+        const s = calcScore(saved.sprint_pred, saved.sprint_res);
+        racePts += s.pts; raceExact += s.exact; totalPredicted += 3;
+      }
+      totalPts += racePts; totalExact += raceExact;
+
+      const scoreHTML = (hasAnyPred && hasAnyResult) ? `<div class="card-score"><div class="score-label">Score</div><div class="score-val">${racePts} pts</div></div>` : '';
+
+      const card = document.createElement('div');
+      card.className = `race-card ${cardClass}`;
+      card.innerHTML = `
+        <div class="card-banner pattern-${race.pattern}">
+          <div class="banner-label">${race.label}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-top"><div class="card-round">Round ${race.round}</div></div>
+          <div class="card-name">${race.name}</div>
+          <div class="card-circuit">${race.circuit}</div>
+          <div class="card-date">${race.date}</div>
+          <div class="card-tags">
+            ${race.sprint ? '<div class="tag sprint">⚡ Sprint</div>' : ''}
+            ${hasAnyPred ? '<div class="tag has-pred">Predicted</div>' : '<div class="tag">No Prediction</div>'}
+            ${hasAnyResult ? '<div class="tag has-result">✓ Result In</div>' : ''}
+          </div>
+          ${scoreHTML}
+        </div>`;
+      // glow spot
+      const glow = document.createElement('div');
+      glow.className = 'card-glow';
+      card.appendChild(glow);
+
+      // 3D TILT
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const rotY =  ((x - cx) / cx) * 12;
+        const rotX = -((y - cy) / cy) * 10;
+        card.style.transform = `perspective(700px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.04,1.04,1.04)`;
+        card.style.boxShadow = `${-rotY*2}px ${rotX*2}px 40px rgba(255,45,120,0.2), 0 20px 60px rgba(0,0,0,0.5)`;
+        glow.style.left = x + 'px';
+        glow.style.top  = y + 'px';
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transition = 'transform 0.4s ease, box-shadow 0.4s ease';
+        card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)';
+        card.style.boxShadow = '';
+      });
+
+      card.addEventListener('mousedown', () => {
+        card.style.transition = 'transform 0.12s ease';
+        card.style.transform = 'perspective(700px) scale3d(0.94,0.94,0.94)';
+      });
+
+      card.addEventListener('mouseup', () => {
+        card.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        card.style.transform = 'perspective(700px) scale3d(0.88, 0.88, 0.88)';
+        setTimeout(() => {
+          card.style.transition = 'transform 0.15s ease';
+          card.style.transform = 'perspective(700px) scale3d(1,1,1)';
+          openModal(race.round);
+        }, 280);
+      });
+
+      grid.appendChild(card);
+    });
+
+    document.getElementById('stat-races').textContent = totalRacesDone;
+    document.getElementById('stat-predicted').textContent = calendar.filter(r => { const s = data[`round_${r.round}`]||{}; return s.race_pred?.p1 || s.sprint_pred?.p1; }).length;
+    document.getElementById('stat-hits').textContent = totalExact;
+    document.getElementById('stat-points').textContent = totalPts;
+    document.getElementById('stat-accuracy').textContent = totalPredicted > 0 ? Math.round((totalPts/(totalPredicted*3))*100)+'%' : '—';
+  }
+
+  function openModal(round) {
+    currentRound = round;
+    const race = calendar.find(r => r.round === round);
+    const saved = (loadData()[`round_${round}`]) || {};
+    document.getElementById('modal-title').textContent = race.name;
+    document.getElementById('modal-sub').textContent = `Round ${race.round} · ${race.circuit} · ${race.date}`;
+    document.getElementById('modal-banner').className = `modal-banner pattern-${race.pattern}`;
+    document.getElementById('sprint-section').style.display = race.sprint ? 'block' : 'none';
+    const fill = (id, val) => { document.getElementById(id).value = val||''; };
+    fill('race-pred-1', saved.race_pred?.p1); fill('race-pred-2', saved.race_pred?.p2); fill('race-pred-3', saved.race_pred?.p3);
+    fill('race-res-1', saved.race_res?.p1);   fill('race-res-2', saved.race_res?.p2);   fill('race-res-3', saved.race_res?.p3);
+    if (race.sprint) {
+      fill('sprint-pred-1', saved.sprint_pred?.p1); fill('sprint-pred-2', saved.sprint_pred?.p2); fill('sprint-pred-3', saved.sprint_pred?.p3);
+      fill('sprint-res-1', saved.sprint_res?.p1);   fill('sprint-res-2', saved.sprint_res?.p2);   fill('sprint-res-3', saved.sprint_res?.p3);
+    }
+    updateModalScore(race, saved);
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+
+  function updateModalScore(race, saved) {
+    const box = document.getElementById('modal-score');
+    const hasRaceResult   = !!saved.race_res?.p1;
+    const hasSprintResult = race.sprint && !!saved.sprint_res?.p1;
+    if (!hasRaceResult && !hasSprintResult) { box.style.display='none'; return; }
+
+    let total = 0, breakdown = '';
+    if (hasRaceResult) {
+      const rs = calcScore(saved.race_pred, saved.race_res);
+      total += rs.pts;
+      breakdown += `Race: ${rs.pts}pts (${rs.exact} exact)`;
+    }
+    if (hasSprintResult) {
+      const ss = calcScore(saved.sprint_pred, saved.sprint_res);
+      total += ss.pts;
+      breakdown += (breakdown ? ' · ' : '') + `Sprint: ${ss.pts}pts (${ss.exact} exact)`;
+    }
+    document.getElementById('modal-score-val').textContent = total+' pts';
+    document.getElementById('modal-score-breakdown').textContent = breakdown;
+    box.style.display = 'block';
+  }
+
+  function saveRace() {
+    const data = loadData();
+    const race = calendar.find(r => r.round === currentRound);
+    const key = `round_${currentRound}`;
+    if (!data[key]) data[key] = {};
+    data[key].race_pred = { p1: document.getElementById('race-pred-1').value, p2: document.getElementById('race-pred-2').value, p3: document.getElementById('race-pred-3').value };
+    data[key].race_res  = { p1: document.getElementById('race-res-1').value,  p2: document.getElementById('race-res-2').value,  p3: document.getElementById('race-res-3').value };
+    if (race.sprint) {
+      data[key].sprint_pred = { p1: document.getElementById('sprint-pred-1').value, p2: document.getElementById('sprint-pred-2').value, p3: document.getElementById('sprint-pred-3').value };
+      data[key].sprint_res  = { p1: document.getElementById('sprint-res-1').value,  p2: document.getElementById('sprint-res-2').value,  p3: document.getElementById('sprint-res-3').value };
+    }
+    saveData(data);
+    updateModalScore(race, data[key]);
+    renderCards();
+
+    // ── SMOOTH EXIT ──
+    const btn = document.querySelector('.btn-save');
+    btn.textContent = '✦ Saved!';
+    btn.style.background = 'linear-gradient(135deg, #00e676, #00b8d4)';
+    const modal = document.querySelector('.modal');
+    const overlay = document.getElementById('modal-overlay');
+    setTimeout(() => {
+      modal.style.transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease';
+      modal.style.transform = 'scale(0.88) translateY(30px)';
+      modal.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.45s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.classList.remove('open');
+        overlay.style.opacity = '';
+        modal.style.transform = '';
+        modal.style.opacity = '';
+        modal.style.transition = '';
+        overlay.style.transition = '';
+        btn.textContent = 'Save Predictions ✦';
+        btn.style.background = '';
+        currentRound = null;
+      }, 460);
+    }, 700);
+  }
+
+  // ── FETCH ACTUAL RESULTS VIA AI ──
+  async function fetchResults() {
+    const race = calendar.find(r => r.round === currentRound);
+    if (!race) return;
+
+    const btn    = document.getElementById('fetch-btn');
+    const icon   = document.getElementById('fetch-icon');
+    const spinner= document.getElementById('fetch-spinner');
+    const text   = document.getElementById('fetch-text');
+    const status = document.getElementById('fetch-status');
+    const label  = document.getElementById('fetch-label');
+
+    // loading state
+    btn.disabled = true;
+    icon.style.display = 'none';
+    spinner.style.display = 'block';
+    text.textContent = 'Fetching live results...';
+    status.style.display = 'block';
+    label.style.display = 'block';
+    label.textContent = 'Searching live race data...';
+
+    // reset bar animation
+    const bar = document.getElementById('fetch-bar');
+    bar.style.animation = 'none';
+    bar.offsetHeight; // reflow
+    bar.style.animation = 'fetchProgress 3s ease forwards';
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const sprintNote = race.sprint ? ` This is a sprint weekend — the sprint race happens on Saturday and the main race on Sunday. Check each session separately based on whether it has already occurred.` : '';
+      const prompt = `Today is ${today}. I need the CONFIRMED official F1 results for the ${race.name} 2026 (weekend scheduled ${race.date} 2026).${sprintNote} STRICT RULES: (1) Search the web to verify real results. (2) For each session, only fill in results if that specific session has already taken place before today — the sprint race and main race happen on different days so check each independently. (3) Never guess or predict future sessions — return null for those. (4) Reply ONLY in this exact JSON with no other text: {"race":{"p1":null,"p2":null,"p3":null}${race.sprint ? `,"sprint":{"p1":null,"p2":null,"p3":null}` : ''}} — replace null only with confirmed driver last names.`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await response.json();
+      const rawText = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+      const result = JSON.parse(jsonMatch[0]);
+
+      const hasRace   = result.race?.p1   && result.race.p1   !== 'null';
+      const hasSprint = race.sprint && result.sprint?.p1 && result.sprint.p1 !== 'null';
+
+      if (!hasRace && !hasSprint) {
+        setFetchState('upcoming', btn, icon, spinner, text, status, label);
+        return;
+      }
+
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        el.value = val || '';
+        if (val && val !== 'null') { el.classList.add('input-filled'); setTimeout(() => el.classList.remove('input-filled'), 3000); }
+      };
+
+      if (hasRace) {
+        setVal('race-res-1', result.race.p1);
+        setVal('race-res-2', result.race.p2);
+        setVal('race-res-3', result.race.p3);
+      }
+
+      if (hasSprint) {
+        setVal('sprint-res-1', result.sprint.p1);
+        setVal('sprint-res-2', result.sprint.p2);
+        setVal('sprint-res-3', result.sprint.p3);
+      }
+
+      // complete bar
+      bar.style.animation = 'none';
+      bar.style.width = '100%';
+      bar.style.background = 'linear-gradient(90deg, #00e676, #00b8d4)';
+
+      setFetchState('success', btn, icon, spinner, text, status, label);
+
+    } catch(e) {
+      setFetchState('error', btn, icon, spinner, text, status, label);
+    }
+  }
+
+  function setFetchState(state, btn, icon, spinner, text, status, label) {
+    spinner.style.display = 'none';
+    icon.style.display = 'flex';
+    btn.disabled = false;
+
+    if (state === 'success') {
+      icon.textContent = '✓';
+      icon.style.background = 'linear-gradient(135deg, #00e676, #00b8d4)';
+      text.textContent = 'Results filled successfully';
+      label.textContent = 'Verified from live data ✦';
+      label.style.color = 'rgba(0,230,118,0.7)';
+    } else if (state === 'upcoming') {
+      icon.textContent = '◷';
+      icon.style.background = 'linear-gradient(135deg, #ffd642, #ff9800)';
+      text.textContent = 'Race hasn\'t happened yet';
+      label.textContent = 'Check back after race weekend ✦';
+      label.style.color = 'rgba(255,214,66,0.7)';
+      setTimeout(() => resetFetchBtn(btn, icon, text, status, label), 3000);
+    } else {
+      icon.textContent = '✦';
+      icon.style.background = 'linear-gradient(135deg, var(--pink), var(--purple))';
+      text.textContent = 'Auto-fill actual results';
+      status.style.display = 'none';
+      label.style.display = 'none';
+    }
+  }
+
+  function resetFetchBtn(btn, icon, text, status, label) {
+    icon.textContent = '✦';
+    icon.style.background = 'linear-gradient(135deg, var(--pink), var(--purple))';
+    text.textContent = 'Auto-fill actual results';
+    status.style.display = 'none';
+    label.style.display = 'none';
+    label.style.color = '';
+  }
+
+  function closeModal() {
+    const modal = document.querySelector('.modal');
+    const overlay = document.getElementById('modal-overlay');
+    modal.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease';
+    modal.style.transform = 'scale(0.92) translateY(20px)';
+    modal.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.35s ease';
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.classList.remove('open');
+      overlay.style.opacity = '';
+      modal.style.transform = '';
+      modal.style.opacity = '';
+      modal.style.transition = '';
+      overlay.style.transition = '';
+      currentRound = null;
+    }, 360);
+  }
+
+  document.getElementById('modal-overlay').addEventListener('click', function(e) { if (e.target===this) closeModal(); });
+  renderCards();
+</script>
+</body>
+</html>
